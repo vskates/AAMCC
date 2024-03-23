@@ -30,6 +30,7 @@ G4bool InitialConditions::SetSysA(G4String SysA_in) {
     else if(SysA_in == "Xe124"){sourceA = 124; sourceZ = 54; SysA = SysA_in;}
     else if(SysA_in == "Xe130"){sourceA = 130; sourceZ = 54; SysA = SysA_in;}
     else if(SysA_in == "Xe"){sourceA = 129; sourceZ = 54; SysA = SysA_in;}
+    else if(SysA_in == "W"){sourceA = 186; sourceZ = 74; SysA = SysA_in;}
     else if(SysA_in == "Ar"){sourceA = 40; sourceZ = 18; SysA = SysA_in;}
     else if(SysA_in == "Ca2"){sourceA = 40; sourceZ = 20; SysA = SysA_in;}
     //else if(SysA_in == "Ni"){sourceA = 58; sourceZ = 28; SysA = SysA_in;} //issue on GlauberMC side
@@ -70,6 +71,7 @@ G4bool InitialConditions::SetSysB(G4String SysB_in) {
     else if(SysB_in == "Xe124"){sourceAb = 124; sourceZb = 54; SysB = SysB_in;}
     else if(SysB_in == "Xe130"){sourceAb = 130; sourceZb = 54; SysB = SysB_in;}
     else if(SysB_in == "Xe"){sourceAb = 129; sourceZb = 54; SysB = SysB_in;}
+    else if(SysB_in == "W"){sourceAb = 186; sourceZb = 74; SysB = SysB_in;}
     else if(SysB_in == "Ar"){sourceAb = 40; sourceZb = 18; SysB = SysB_in;}
     else if(SysB_in == "Ca2") {sourceAb = 40; sourceZb = 20; SysB = SysB_in;}
     //else if(SysB_in == "Ni") {sourceAb = 58; sourceZb = 28; SysB = SysB_in;} //issue on GlauberMC side
