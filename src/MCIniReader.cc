@@ -56,8 +56,10 @@ AAMCCinput MCIniReader::operator()() {
         //new nucleon to write into cache->nucleons
         //std::cout<<particle->GetIndex()<< "\r" <<std::flush; //errors with indexing leads to out of range
         //if(particle->GetIndex() > asum || (particle->GetIndex() < asum && particle->GetIndex() != 0 ? curr_st->getNucleon(particle->GetIndex()).getCollisionType() : 1000)  > 0) //TODO: Add collision type check nucleon->collisionType == 0 (no collision), 1 (el. collision with initial nucleus), 2 (el. collision with produced particle), 3 (nonel. with init nucl), 4 (nonel. with produced)
+        //if(sqrt(particle->Px()*particle->Px() + particle->Py()*particle->Py())/abs(particle->Pz()) > 0.01)
+        //std::cout<<particle->GetStatus()<<" "<<particle->GetParent()<<std::endl;
         if((particle->GetStatus() != 0 || particle->GetParent() != 0))
-            continue;
+                continue;
         aamcc::Nucleon nucl;
         switch (particle->GetPdg()) {
             case 2212:                  //proton pdg code
