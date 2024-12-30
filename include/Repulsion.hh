@@ -14,8 +14,7 @@
 namespace RepulsionStage {
 
 constexpr double fm = 1e-15 * CLHEP::m;
-constexpr double theta = 0.3;
-
+constexpr double theta = 0.4;
 constexpr double totalTime = 200 * fm / CLHEP::c_light;
 constexpr double iterations = 100;
 constexpr double max_adaptive_delta = std::numeric_limits<double>::max();
@@ -27,7 +26,7 @@ class BHNode {
   int totalA; // total proton count
   G4ThreeVector cr; // mean coordinates of the charges in box
   G4ThreeVector ctr; // coordinates of the box center
-  std::vector<std::shared_ptr<BHNode>> children; // child nodes
+  std::vector<std::unique_ptr<BHNode>> children; // child nodes
   int index; // -1 if > 1 particles, index in nucleons vector otherwise
   double size; // size of the box
 
@@ -35,8 +34,6 @@ class BHNode {
   BHNode(double size, G4ThreeVector ctr) : size(size), ctr(ctr), totalA(0), cr({0.0, 0.0, 0.0}), index(-1) {};
   ~BHNode() = default;
   void Divide();
-  inline G4ThreeVector GetCr() const { return cr;}
-  inline double GetTotalA() const { return totalA;}
 };
 
 class BHTree {
@@ -48,22 +45,22 @@ class BHTree {
   double GetAdaptiveTimeDelta() const;
 
  private:
-  std::shared_ptr<BHNode> rootnode_;
+  std::unique_ptr<BHNode> rootnode_;
   G4FragmentVector* frags_;
   const std::vector<int>* maps_;
   std::vector<G4ThreeVector> fs_;
 
-  std::shared_ptr<BHNode> BuildBHTree(const aamcc::NucleonVector* nucleons);
+  void BuildBHTree(const aamcc::NucleonVector* nucleons);
 
-  std::shared_ptr<BHNode> InitializeRoot(const aamcc::NucleonVector* nucleons);
+  std::unique_ptr<BHNode> InitializeRoot(const aamcc::NucleonVector* nucleons);
 
-  void GetForces(const std::shared_ptr<BHNode>& node);
+  void GetForces(const BHNode* node);
 
-  G4ThreeVector Force(const std::shared_ptr<BHNode>& rootnode, const std::shared_ptr<BHNode>& node) const;
+  G4ThreeVector Force(const BHNode* rootnode, const BHNode* node) const;
 
-  G4ThreeVector DuoForce(G4ThreeVector vfrom, G4ThreeVector target, double from_totalA) const;
+  G4ThreeVector DuoForce(const G4ThreeVector& vfrom, const G4ThreeVector& target, const double& from_totalA) const;
 
-  void InsertNucleon(std::shared_ptr<BHNode>& node, const G4ThreeVector cords, int pIndex);
+  std::unique_ptr<BHNode> InsertNucleon(std::unique_ptr<BHNode> node, const G4ThreeVector& cords, int pIndex);
 };
 
 }

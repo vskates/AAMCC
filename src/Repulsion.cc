@@ -41,11 +41,11 @@ G4FragmentVector CalculateRepulsion(G4FragmentVector frags, aamcc::NucleonVector
 
 BHTree::BHTree(const aamcc::NucleonVector* nucleons, G4FragmentVector* frags, const std::vector<int>* maps) : frags_(frags), maps_(maps) {
   fs_.assign(frags->size(), {0.0, 0.0, 0.0});
-  rootnode_ = BuildBHTree(nucleons);
-  GetForces(rootnode_);
+  BuildBHTree(nucleons);
+  GetForces(rootnode_.get());
 }
 
-std::shared_ptr<BHNode> BHTree::InitializeRoot(const aamcc::NucleonVector* nucleons) {
+std::unique_ptr<BHNode> BHTree::InitializeRoot(const aamcc::NucleonVector* nucleons) {
   double minX = (*nucleons)[0].GetX(), maxX = minX;
   double minY = (*nucleons)[0].GetY(), maxY = minY;
   double minZ = (*nucleons)[0].GetZ(), maxZ = minZ;
@@ -60,35 +60,39 @@ std::shared_ptr<BHNode> BHTree::InitializeRoot(const aamcc::NucleonVector* nucle
   }
 
   G4ThreeVector cr = {0.0, 0.0, 0.0};
-  size_t nucleons_sz = nucleons->size();
+  double nucleons_sz = static_cast<double>(nucleons->size());
+  double sumX = 0.0;
+  double sumY = 0.0;
+  double sumZ = 0.0;
+
   for (const auto& nuc : *nucleons) {
-    cr.setX(cr.x() + nuc.GetX());
-    cr.setY(cr.y() + nuc.GetY());
-    cr.setZ(cr.z() + nuc.GetZ());
+    sumX += nuc.GetX();
+    sumY += nuc.GetY();
+    sumZ += nuc.GetZ();
   }
-  cr.setX(cr.x() / static_cast<double>(nucleons_sz));
-  cr.setY(cr.y() / static_cast<double>(nucleons_sz));
-  cr.setZ(cr.z() / static_cast<double>(nucleons_sz));
+  cr.setX(sumX / nucleons_sz);
+  cr.setY(sumY / nucleons_sz);
+  cr.setZ(sumZ / nucleons_sz);
 
   double maxRange = std::max({maxX - minX, maxY - minY, maxZ - minZ});
-  return std::make_shared<BHNode>(maxRange, G4ThreeVector((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2));
+  return std::make_unique<BHNode>(maxRange, G4ThreeVector((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2));
 }
 
-std::shared_ptr<BHNode> BHTree::BuildBHTree(const aamcc::NucleonVector* nucleons) {
+void BHTree::BuildBHTree(const aamcc::NucleonVector* nucleons) {
   rootnode_ = InitializeRoot(nucleons);
 
   for (size_t i = 0; i < nucleons->size(); i++) {
-    InsertNucleon(rootnode_, {(*nucleons)[i].GetX(), (*nucleons)[i].GetY(), (*nucleons)[i].GetZ()}, i);
+    G4ThreeVector vec = {(*nucleons)[i].GetX(), (*nucleons)[i].GetY(), (*nucleons)[i].GetZ()};
+    rootnode_ = InsertNucleon(std::move(rootnode_), vec, i);
   }
-  return rootnode_;
 }
 
-void BHTree::InsertNucleon(std::shared_ptr<BHNode>& node, const G4ThreeVector cords, int pIndex) {
+std::unique_ptr<BHNode> BHTree::InsertNucleon(std::unique_ptr<BHNode> node, const G4ThreeVector& cords, int pIndex) {
   if (node->totalA == 0) {
     node->totalA = 1;
     node->cr = cords;
     node->index = pIndex;
-    return;
+    return node;
   }
   if (node->totalA == 1) {
     node->Divide();
@@ -97,20 +101,18 @@ void BHTree::InsertNucleon(std::shared_ptr<BHNode>& node, const G4ThreeVector co
     if (node->cr.x() > node->ctr.x()) index |= 1;
     if (node->cr.y() > node->ctr.y()) index |= 2;
     if (node->cr.z() > node->ctr.z()) index |= 4;
-    std::shared_ptr<BHNode> targetNode = node->children[index];
-    InsertNucleon(targetNode, node->cr, node->index);
+    node->children[index] = InsertNucleon(std::move(node->children[index]), node->cr, node->index);
 
     index = 0;
     if (cords.x() > node->ctr.x()) index |= 1;
     if (cords.y() > node->ctr.y()) index |= 2;
     if (cords.z() > node->ctr.z()) index |= 4;
-    targetNode = node->children[index];
-    InsertNucleon(targetNode, cords, pIndex);
+    node->children[index] = InsertNucleon(std::move(node->children[index]), cords, pIndex);
 
     node->cr = (node->cr + cords) / 2;
     node->totalA += 1;
     node->index = -1;
-    return;
+    return node;
   }
   node->cr = (node->cr * node->totalA + cords) / (node->totalA + 1);
   node->totalA += 1;
@@ -119,9 +121,8 @@ void BHTree::InsertNucleon(std::shared_ptr<BHNode>& node, const G4ThreeVector co
   if (cords.x() > node->ctr.x()) index |= 1;
   if (cords.y() > node->ctr.y()) index |= 2;
   if (cords.z() > node->ctr.z()) index |= 4;
-  std::shared_ptr<BHNode> targetNode = node->children[index];
-  InsertNucleon(targetNode, cords, pIndex);
-  return;
+  node->children[index] = InsertNucleon(std::move(node->children[index]), cords, pIndex);
+  return node;
 }
 
 double BHTree::GetAdaptiveTimeDelta() const {
@@ -143,66 +144,63 @@ std::vector<G4ThreeVector> BHTree::Iterate(double time_delta) {
       continue;
     }
     G4LorentzVector p = frags_->at(i)->GetMomentum();
-
     G4ThreeVector half_dp = fs_[i] * time_delta * 0.5;
 
-    p = G4LorentzVector((p.vect() + half_dp), std::sqrt((p.vect() + half_dp).mag2() + p.m2()));
-    G4ThreeVector mid_v = p.vect() / p.e();
+    G4ThreeVector mid_v = (p.vect() + half_dp) / std::sqrt((p.vect() + half_dp).mag2() + p.m2());
     r_delta[i] = G4ThreeVector(time_delta * mid_v.x(), time_delta * mid_v.y(), time_delta * mid_v.z());
 
-    p = G4LorentzVector((p.vect() + half_dp), std::sqrt((p.vect() + half_dp).mag2() + p.m2()));
+    p = G4LorentzVector((p.vect() + 2 * half_dp), std::sqrt((p.vect() + 2 * half_dp).mag2() + p.m2()));
 
     frags_->at(i)->SetMomentum(p);
   }
   return r_delta;
 }
 
-void BHTree::GetForces(const std::shared_ptr<BHNode>& node) {
+void BHTree::GetForces(const BHNode* node) {
   if (node->totalA == 0) {
     return;
   }
   if (node->totalA == 1) {
-    fs_[maps_->at(node->index)] += Force(rootnode_, node);
+    fs_[maps_->at(node->index)] += Force(rootnode_.get(), node);
     return;
   }
   for (const auto& child : node->children) {
-    GetForces(child);
+    GetForces(child.get());
   }
-  return;
 }
 
-G4ThreeVector BHTree::Force(const std::shared_ptr<BHNode>& rootnode, const std::shared_ptr<BHNode>& node) const {
+G4ThreeVector BHTree::Force(const BHNode* rootnode, const BHNode* node) const {
   if ((rootnode->totalA == 0) || ((rootnode->index != -1) && maps_->at(rootnode->index) == maps_->at(node->index))) {
     return {0.0, 0.0, 0.0};
   }
   if (rootnode->totalA == 1) {
-    return DuoForce(rootnode->GetCr(), node->GetCr(), rootnode->GetTotalA());
+    return DuoForce(rootnode->cr, node->cr, rootnode->totalA);
   }
-  if ((rootnode->size / (node->GetCr() - rootnode->GetCr()).mag()) < theta) {
-    return DuoForce(rootnode->GetCr(), node->GetCr(), rootnode->GetTotalA());
+  if ((rootnode->size / (node->cr - rootnode->cr).mag()) < theta) {
+    return DuoForce(rootnode->cr, node->cr, rootnode->totalA);
   }
   G4ThreeVector totalForce = {0.0, 0.0, 0.0};
   for (const auto& child : rootnode->children) {
-    totalForce += Force(child, node);
+    totalForce += Force(child.get(), node);
   }
   return totalForce;
 }
 
-G4ThreeVector BHTree::DuoForce(G4ThreeVector vfrom, G4ThreeVector target, double from_totalA) const {
+G4ThreeVector BHTree::DuoForce(const G4ThreeVector& vfrom, const G4ThreeVector& target, const double& from_totalA) const {
   G4ThreeVector vec = target - vfrom;
   G4ThreeVector fos = vec * CLHEP::elm_coupling * from_totalA / std::pow(vec.mag(), 3);
   return fos;
 }
 
 void BHNode::Divide() {
+  children.resize(8);
   for (size_t i = 0; i < 8; i++) {
     G4ThreeVector offset(
       (i & 1 ? 1 : -1) * size / 4.0,
       (i & 2 ? 1 : -1) * size / 4.0,
       (i & 4 ? 1 : -1) * size / 4.0
     );
-    children.push_back(std::make_shared<BHNode>(size / 2.0, ctr + offset));
+    children[i] = std::make_unique<BHNode>(size / 2.0, ctr + offset);
   }
 }
-
 }
