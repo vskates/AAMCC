@@ -197,10 +197,11 @@ std::vector<G4FragmentVector> GMSTClustering::CalculateMomentum(std::vector<G4Fr
     momentumVectorA = phaseSpaceDecay.Decay(PrefragmentMass_A, MstMassVector_A);
     //}
 
-    // ----------- Momentums A
     for (int I = 0; I < momClusters.at(0).size(); ++I) {
       momClusters.at(0).at(I)->SetMomentum(*momentumVectorA->at(I));
     }
+
+    momentumVectorA->clear();
 
     momClusters.at(0) = RepulsionStage::CalculateRepulsion(momClusters.at(0), rnucsA, rmapsA);
     for (int I = 0; I < momClusters.at(0).size(); ++I) {
@@ -208,9 +209,6 @@ std::vector<G4FragmentVector> GMSTClustering::CalculateMomentum(std::vector<G4Fr
       momentum.boost(boostA);
       momClusters.at(0).at(I)->SetMomentum(momentum);
     }
-    // ----------
-
-    momentumVectorA->clear();
   }
   // side B
   SumMassMst = 0;
@@ -243,10 +241,11 @@ std::vector<G4FragmentVector> GMSTClustering::CalculateMomentum(std::vector<G4Fr
     momentumVectorB = phaseSpaceDecay.Decay(PrefragmentMass_B, MstMassVector_B);
     //}
 
-    // ----------- Momentums B
     for (int I = 0; I < momClusters.at(1).size(); ++I) {
       momClusters.at(1).at(I)->SetMomentum(*momentumVectorB->at(I));
     }
+
+    momentumVectorB->clear();
 
     momClusters.at(1) = RepulsionStage::CalculateRepulsion(momClusters.at(1), rnucsB, rmapsB);
     for (int I = 0; I < momClusters.at(1).size(); ++I) {
@@ -254,9 +253,6 @@ std::vector<G4FragmentVector> GMSTClustering::CalculateMomentum(std::vector<G4Fr
       momentum.boost(boostB);
       momClusters.at(1).at(I)->SetMomentum(momentum);
     }
-    // ----------
-
-    momentumVectorB->clear();
   }
 
   MstMassVector_A.clear();

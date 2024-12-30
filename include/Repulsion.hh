@@ -3,12 +3,8 @@
 
 #include <cmath>
 #include <limits>
-#include <iomanip>
 #include <iostream>
-#include <array>
-#include <memory>
 #include <vector>
-#include <cassert>
 #include <memory>
 
 #include "G4Fragment.hh"
@@ -17,86 +13,58 @@
 
 namespace RepulsionStage {
 
+constexpr double fm = 1e-15 * CLHEP::m;
+constexpr double theta = 0.3;
+
+constexpr double totalTime = 200 * fm / CLHEP::c_light;
+constexpr double iterations = 100;
+constexpr double max_adaptive_delta = std::numeric_limits<double>::max();
+
 G4FragmentVector CalculateRepulsion(G4FragmentVector frags, aamcc::NucleonVector nucleons, const std::vector<int>& maps);
-
-class Vector3d {
- public:
-  double x;
-  double y;
-  double z;
-  Vector3d() {
-    x = 0;
-    y = 0;
-    z = 0;
-  }
-
-  Vector3d(double x1, double y1, double z1 = 0) {
-    x = x1;
-    y = y1;
-    z = z1;
-  }
-  Vector3d(const Vector3d &vec);
-  Vector3d operator+(const Vector3d &vec);
-  Vector3d &operator+=(const Vector3d &vec);
-  Vector3d operator-(const Vector3d &vec);
-  Vector3d &operator-=(const Vector3d &vec);
-  Vector3d operator*(double value);
-  Vector3d &operator*=(double value);
-  Vector3d operator/(double value);
-  Vector3d &operator/=(double value);
-  Vector3d &operator=(const Vector3d &vec);
-  double dot_product(const Vector3d &vec);
-  Vector3d cross_product(const Vector3d &vec);
-  const double magnitude() const;
-  Vector3d normalization();
-  double square() const;
-
-  double distance(const Vector3d &vec);
-  double show_X();
-  double show_Y();
-  double show_Z();
-  void disp();
-};
 
 class BHNode {
  public:
   int totalA; // total proton count
-  Vector3d cr; // mean coordinates of the charges in box
-  Vector3d ctr; // coordinates of the box center
+  G4ThreeVector cr; // mean coordinates of the charges in box
+  G4ThreeVector ctr; // coordinates of the box center
   std::vector<std::shared_ptr<BHNode>> children; // child nodes
   int index; // -1 if > 1 particles, index in nucleons vector otherwise
   double size; // size of the box
 
- public:
   BHNode() = default;
-  BHNode(double size, Vector3d ctr) : size(size), ctr(ctr), totalA(0), cr({0.0, 0.0, 0.0}), index(-1) {};
+  BHNode(double size, G4ThreeVector ctr) : size(size), ctr(ctr), totalA(0), cr({0.0, 0.0, 0.0}), index(-1) {};
   ~BHNode() = default;
   void Divide();
-  inline Vector3d GetCr() const { return cr;}
+  inline G4ThreeVector GetCr() const { return cr;}
   inline double GetTotalA() const { return totalA;}
 };
 
-std::shared_ptr<BHNode> BuildBhtree(const aamcc::NucleonVector* nucleons);
+class BHTree {
+ public:
+  explicit BHTree(const aamcc::NucleonVector* nucleons, G4FragmentVector* frags, const std::vector<int>* maps);
 
-std::shared_ptr<BHNode> InitializeRoot(const aamcc::NucleonVector* nucleons);
+  std::vector<G4ThreeVector> Iterate(double time_delta);
 
-Vector3d Force(const std::shared_ptr<BHNode>& rootnode, const std::shared_ptr<BHNode>& node, const std::vector<int>& maps);
+  double GetAdaptiveTimeDelta() const;
 
-Vector3d DuoForce(Vector3d vfrom, Vector3d target, double from_totalA);
+ private:
+  std::shared_ptr<BHNode> rootnode_;
+  G4FragmentVector* frags_;
+  const std::vector<int>* maps_;
+  std::vector<G4ThreeVector> fs_;
 
-std::vector<double> GetFragmentMasses(G4FragmentVector& fragments);
+  std::shared_ptr<BHNode> BuildBHTree(const aamcc::NucleonVector* nucleons);
 
-void GetForces(const std::shared_ptr<BHNode>& rootnode, const std::shared_ptr<BHNode>& node, const std::vector<int>& maps, std::vector<Vector3d>& fs);
+  std::shared_ptr<BHNode> InitializeRoot(const aamcc::NucleonVector* nucleons);
 
-void LazyGetForces(const aamcc::NucleonVector* nucleons, const std::vector<int>& maps, std::vector<Vector3d>& fs);
+  void GetForces(const std::shared_ptr<BHNode>& node);
 
-std::vector<Vector3d> Iterate(G4FragmentVector& frags, const std::vector<Vector3d>& fs, double time_delta, const std::vector<double>& frag_masses);
+  G4ThreeVector Force(const std::shared_ptr<BHNode>& rootnode, const std::shared_ptr<BHNode>& node) const;
 
-inline double GetGamma(const G4LorentzVector& momentum, double mass);
+  G4ThreeVector DuoForce(G4ThreeVector vfrom, G4ThreeVector target, double from_totalA) const;
 
-void InsertNucleon(std::shared_ptr<BHNode>& node, const Vector3d cords, int pIndex);
-
-double GetAdaptiveTimeDelta(const G4FragmentVector& frags, const std::vector<Vector3d>& fs);
+  void InsertNucleon(std::shared_ptr<BHNode>& node, const G4ThreeVector cords, int pIndex);
+};
 
 }
 
