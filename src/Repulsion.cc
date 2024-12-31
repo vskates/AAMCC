@@ -174,10 +174,10 @@ G4ThreeVector BHTree::Force(const BHNode* rootnode, const BHNode* node) const {
     return {0.0, 0.0, 0.0};
   }
   if (rootnode->totalA == 1) {
-    return DuoForce(rootnode->cr, node->cr, rootnode->totalA);
+    return DuoForce(node->cr - rootnode->cr, rootnode->totalA);
   }
   if ((rootnode->size / (node->cr - rootnode->cr).mag()) < theta) {
-    return DuoForce(rootnode->cr, node->cr, rootnode->totalA);
+    return DuoForce(node->cr - rootnode->cr, rootnode->totalA);
   }
   G4ThreeVector totalForce = {0.0, 0.0, 0.0};
   for (const auto& child : rootnode->children) {
@@ -186,8 +186,7 @@ G4ThreeVector BHTree::Force(const BHNode* rootnode, const BHNode* node) const {
   return totalForce;
 }
 
-G4ThreeVector BHTree::DuoForce(const G4ThreeVector& vfrom, const G4ThreeVector& target, const double& from_totalA) const {
-  G4ThreeVector vec = target - vfrom;
+G4ThreeVector BHTree::DuoForce(const G4ThreeVector vec, const double& from_totalA) const {
   G4ThreeVector fos = vec * CLHEP::elm_coupling * from_totalA / std::pow(vec.mag(), 3);
   return fos;
 }

@@ -118,7 +118,6 @@ std::vector<G4FragmentVector> GMSTClustering::GetClusters(aamcc::NucleonVector *
     G4Fragment *frag = new G4Fragment();
     frag->SetA(A_clust);
     frag->SetZ(Z_clust);
-    frag->SetMomentum({0, 0, 0, 0});
     output_vector_A.push_back(frag);
 
     ++rcountA;
@@ -143,7 +142,6 @@ std::vector<G4FragmentVector> GMSTClustering::GetClusters(aamcc::NucleonVector *
     G4Fragment *frag = new G4Fragment();
     frag->SetA(A_clust);
     frag->SetZ(Z_clust);
-    frag->SetMomentum({0, 0, 0, 0});
     output_vector_B.push_back(frag);
 
     ++rcountB;

@@ -14,9 +14,9 @@
 namespace RepulsionStage {
 
 constexpr double fm = 1e-15 * CLHEP::m;
-constexpr double theta = 0.4;
+constexpr double theta = 0.3;
 constexpr double totalTime = 200 * fm / CLHEP::c_light;
-constexpr double iterations = 100;
+constexpr double iterations = 1000;
 constexpr double max_adaptive_delta = std::numeric_limits<double>::max();
 
 G4FragmentVector CalculateRepulsion(G4FragmentVector frags, aamcc::NucleonVector nucleons, const std::vector<int>& maps);
@@ -58,7 +58,7 @@ class BHTree {
 
   G4ThreeVector Force(const BHNode* rootnode, const BHNode* node) const;
 
-  G4ThreeVector DuoForce(const G4ThreeVector& vfrom, const G4ThreeVector& target, const double& from_totalA) const;
+  G4ThreeVector DuoForce(const G4ThreeVector vec, const double& from_totalA) const;
 
   std::unique_ptr<BHNode> InsertNucleon(std::unique_ptr<BHNode> node, const G4ThreeVector& cords, int pIndex);
 };
