@@ -75,7 +75,7 @@ std::unique_ptr<BHNode> BHTree::InitializeRoot(const aamcc::NucleonVector* nucle
   cr.setZ(sumZ / nucleons_sz);
 
   double maxRange = std::max({maxX - minX, maxY - minY, maxZ - minZ});
-  return std::make_unique<BHNode>(maxRange, G4ThreeVector((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2));
+  return std::unique_ptr<BHNode>(new BHNode(maxRange, G4ThreeVector((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2)));
 }
 
 void BHTree::BuildBHTree(const aamcc::NucleonVector* nucleons) {
@@ -199,7 +199,7 @@ void BHNode::Divide() {
       (i & 2 ? 1 : -1) * size / 4.0,
       (i & 4 ? 1 : -1) * size / 4.0
     );
-    children[i] = std::make_unique<BHNode>(size / 2.0, ctr + offset);
+    children[i] = std::unique_ptr<BHNode>(new BHNode(size / 2.0, ctr + offset));
   }
 }
 }
