@@ -60,7 +60,7 @@ class BHTree {
 
   G4ThreeVector DuoForce(const G4ThreeVector vec, const double& from_totalA) const;
 
-  std::unique_ptr<BHNode> InsertNucleon(std::unique_ptr<BHNode> node, const G4ThreeVector& cords, int pIndex);
+  void InsertNucleon(const std::unique_ptr<BHNode>& node, const G4ThreeVector& cords, int pIndex);
 };
 
 }

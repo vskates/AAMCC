@@ -83,16 +83,16 @@ void BHTree::BuildBHTree(const aamcc::NucleonVector* nucleons) {
 
   for (size_t i = 0; i < nucleons->size(); i++) {
     G4ThreeVector vec = {(*nucleons)[i].GetX(), (*nucleons)[i].GetY(), (*nucleons)[i].GetZ()};
-    rootnode_ = InsertNucleon(std::move(rootnode_), vec, i);
+    InsertNucleon(rootnode_, vec, i);
   }
 }
 
-std::unique_ptr<BHNode> BHTree::InsertNucleon(std::unique_ptr<BHNode> node, const G4ThreeVector& cords, int pIndex) {
+void BHTree::InsertNucleon(const std::unique_ptr<BHNode>& node, const G4ThreeVector& cords, int pIndex) {
   if (node->totalA == 0) {
     node->totalA = 1;
     node->cr = cords;
     node->index = pIndex;
-    return node;
+    return;
   }
   if (node->totalA == 1) {
     node->Divide();
@@ -101,18 +101,18 @@ std::unique_ptr<BHNode> BHTree::InsertNucleon(std::unique_ptr<BHNode> node, cons
     if (node->cr.x() > node->ctr.x()) index |= 1;
     if (node->cr.y() > node->ctr.y()) index |= 2;
     if (node->cr.z() > node->ctr.z()) index |= 4;
-    node->children[index] = InsertNucleon(std::move(node->children[index]), node->cr, node->index);
+    InsertNucleon(node->children[index], node->cr, node->index);
 
     index = 0;
     if (cords.x() > node->ctr.x()) index |= 1;
     if (cords.y() > node->ctr.y()) index |= 2;
     if (cords.z() > node->ctr.z()) index |= 4;
-    node->children[index] = InsertNucleon(std::move(node->children[index]), cords, pIndex);
+    InsertNucleon(node->children[index], cords, pIndex);
 
     node->cr = (node->cr + cords) / 2;
     node->totalA += 1;
     node->index = -1;
-    return node;
+    return;
   }
   node->cr = (node->cr * node->totalA + cords) / (node->totalA + 1);
   node->totalA += 1;
@@ -121,8 +121,7 @@ std::unique_ptr<BHNode> BHTree::InsertNucleon(std::unique_ptr<BHNode> node, cons
   if (cords.x() > node->ctr.x()) index |= 1;
   if (cords.y() > node->ctr.y()) index |= 2;
   if (cords.z() > node->ctr.z()) index |= 4;
-  node->children[index] = InsertNucleon(std::move(node->children[index]), cords, pIndex);
-  return node;
+  InsertNucleon(node->children[index], cords, pIndex);
 }
 
 double BHTree::GetAdaptiveTimeDelta() const {
